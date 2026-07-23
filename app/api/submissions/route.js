@@ -53,9 +53,6 @@ export async function POST(req) {
         { status: 400 }
       );
     }
-        { status: 400 }
-      );
-    }
     if (extracted.length < 50) {
       return NextResponse.json(
         {
