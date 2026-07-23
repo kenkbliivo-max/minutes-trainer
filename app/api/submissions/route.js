@@ -49,7 +49,10 @@ export async function POST(req) {
     } catch (e) {
       console.error("PDF読み取りエラー:", e);
       return NextResponse.json(
-        { error: "PDFの読み取りに失敗しました。ファイルを確認してください" },
+        { error: "PDF読み取り失敗(詳細): " + (e && e.message ? e.message : String(e)) },
+        { status: 400 }
+      );
+    }
         { status: 400 }
       );
     }
