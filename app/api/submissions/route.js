@@ -46,7 +46,8 @@ export async function POST(req) {
     let extracted = "";
     try {
       extracted = await extractPdfText(buf);
-    } catch {
+    } catch (e) {
+      console.error("PDF読み取りエラー:", e);
       return NextResponse.json(
         { error: "PDFの読み取りに失敗しました。ファイルを確認してください" },
         { status: 400 }
