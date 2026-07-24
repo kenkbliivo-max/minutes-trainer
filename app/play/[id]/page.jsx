@@ -11,6 +11,7 @@ export default function PlayPage() {
   const [phase, setPhase] = useState("loading"); // loading | ready | playing | paused | finished | scoring
   const [shown, setShown] = useState(0); // 表示済み発言数
   const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [speed, setSpeed] = useState(1);
   const [timerStart, setTimerStart] = useState(null); // ms epoch (server基準)
   const [elapsed, setElapsed] = useState(0);
   const [file, setFile] = useState(null);
@@ -18,6 +19,7 @@ export default function PlayPage() {
 
   const idxRef = useRef(0);
   const phaseRef = useRef("loading");
+  const speedRef = useRef(1);
   const voicesRef = useRef([]);
   const timeoutRef = useRef(null);
   const logRef = useRef(null);
@@ -26,12 +28,20 @@ export default function PlayPage() {
     phaseRef.current = phase;
   }, [phase]);
 
-  // 音声一覧のロード
+  useEffect(() => {
+    speedRef.current = speed;
+  }, [speed]);
+
+  // 音声一覧のロード(自然な音声を優先: Edgeの"Natural"音声 > Google音声 > 標準)
   useEffect(() => {
     function load() {
       const all = window.speechSynthesis?.getVoices() || [];
       const ja = all.filter((v) => v.lang && v.lang.startsWith("ja"));
-      voicesRef.current = ja.length ? ja : all;
+      const score = (v) =>
+        /natural|neural|online/i.test(v.name) ? 2 : /google/i.test(v.name) ? 1 : 0;
+      const best = Math.max(0, ...ja.map(score));
+      const top = ja.filter((v) => score(v) === best);
+      voicesRef.current = top.length ? top : all;
     }
     load();
     window.speechSynthesis?.addEventListener("voiceschanged", load);
@@ -115,12 +125,13 @@ export default function PlayPage() {
         if (vs.length) ut.voice = vs[si % vs.length];
         ut.lang = "ja-JP";
         ut.pitch = 1 + ((si % 4) - 1.5) * 0.12;
-        ut.rate = 1.05;
+        ut.rate = 1.05 * speedRef.current;
         ut.onend = next;
         ut.onerror = next;
         window.speechSynthesis.speak(ut);
       } else {
-        const ms = Math.max(1800, Math.min(9000, u.text.length * 110));
+        const ms =
+          Math.max(1800, Math.min(9000, u.text.length * 110)) / speedRef.current;
         timeoutRef.current = setTimeout(next, ms);
       }
     },
@@ -194,6 +205,9 @@ export default function PlayPage() {
                   />
                   音声読み上げ(TTS)を使う
                 </label>
+                <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                  💡 Microsoft Edgeで開くと最も自然な音声になります
+                </span>
               </>
             )}
             {phase === "playing" && (
@@ -207,6 +221,20 @@ export default function PlayPage() {
                 {shown} / {meeting.utterances.length} 発言
               </span>
             )}
+            <label style={{ display: "flex", alignItems: "center", gap: 6, margin: 0 }}>
+              速度
+              <select
+                value={speed}
+                onChange={(e) => setSpeed(+e.target.value)}
+                style={{ width: "auto", padding: "4px 8px" }}
+              >
+                <option value={0.75}>0.75x</option>
+                <option value={1}>1x</option>
+                <option value={1.25}>1.25x</option>
+                <option value={1.5}>1.5x</option>
+                <option value={2}>2x</option>
+              </select>
+            </label>
           </div>
           <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 0 }}>
             再生終了と同時に提出タイマーが始まります。メモは自由に取ってOKです。

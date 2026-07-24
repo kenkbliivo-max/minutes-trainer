@@ -33,6 +33,22 @@ export default function ResultPage() {
     router.push(`/play/${data.submission.meeting_id}`);
   }
 
+  async function makeSequel() {
+    setBusy(true);
+    const res = await fetch("/api/meetings", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ continueFrom: data.submission.meeting_id }),
+    });
+    const d = await res.json();
+    if (!res.ok) {
+      setBusy(false);
+      alert(d.error || "生成に失敗しました");
+      return;
+    }
+    router.push(`/play/${d.id}`);
+  }
+
   if (error) return <div className="error">{error}</div>;
   if (!data) return <p style={{ color: "var(--muted)" }}>読み込み中...</p>;
 
@@ -161,9 +177,12 @@ export default function ResultPage() {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 12 }}>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <button className="btn secondary" onClick={rechallenge} disabled={busy}>
           🔁 同じ会議に再挑戦する
+        </button>
+        <button className="btn secondary" onClick={makeSequel} disabled={busy}>
+          {busy ? "生成中..." : "📖 続きの会議を生成(ストーリーモード)"}
         </button>
         <Link href="/new" className="btn">＋ 新しい練習</Link>
         <Link href="/dashboard" className="btn secondary">ダッシュボードへ</Link>
